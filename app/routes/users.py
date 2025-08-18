@@ -1,21 +1,43 @@
 from fastapi import APIRouter
+from fastapi.responses import JSONResponse
+from typing import List
+from app.schemas.users import UserCreate, UserResponse 
 
 router = APIRouter(
-    prefix="/users",      
+    prefix="/users",
     tags=["Users"]
 )
 
-@router.get("/")
+users_db = []
+
+@router.get("/", response_model=List[UserResponse])
 async def get_users():
-    return {"message": "List of all users"}
+    return JSONResponse(
+        status_code=200,
+        content={"data":users_db,"message":"Users Data Fetch Successfully"}
+    )
 
-# Example endpoint: get a single user by ID
-@router.get("/{user_id}")
+@router.get("/{user_id}", response_model=UserResponse)
 async def get_user(user_id: int):
-    return {"message": f"Details of user {user_id}"}
+    for user in users_db:
+        if user["id"] == user_id:
+            return JSONResponse(
+                status_code=200,
+                content={"data":user,"message":f"{user_id} details fetched successfully"}
+            )
+    return JSONResponse(
+        status_code=404,
+       content={"message": f"User {user_id} not found"}
+    )
 
-# Example endpoint: create a new user
-@router.post("/")
-async def create_user(name: str, email: str):
-    return {"message": f"User {name} with email {email} created successfully"}
+@router.post("/add", response_model=UserResponse)
+async def create_user(user: UserCreate):
+    user_id = len(users_db) + 1
+    new_user = {"id": user_id, **user.model_dump()}
+    users_db.append(new_user)
+    return JSONResponse(
+        status_code=201,
+       content={"message": f"User {user_id} created successfully","data":new_user}
+    )
+
 
